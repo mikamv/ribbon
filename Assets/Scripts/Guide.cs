@@ -6,16 +6,27 @@ public class Guide : MonoBehaviour
 {
 	public GuideWaveCreator GuideWaveCreator;
 	public float OrderFraction;
+	public int HandTargetId;
 	private Vector3 originalPosition;
 
 	void OnTriggerEnter(Collider collider)
 	{
-		Debug.Log("Collision! " + collider.gameObject.layer);
-		if (collider.gameObject.layer == LayerMask.NameToLayer("Controller"))
+		RibbonController ribbonController = collider.gameObject.GetComponent<RibbonController>();
+		if (ribbonController != null && ribbonController.HandId == HandTargetId && GuideWaveCreator.CanDestroyGuide(this) && collider.gameObject.layer == LayerMask.NameToLayer("Controller"))
 		{
 			GuideWaveCreator.OnGuideCollected(this);
-			Destroy(gameObject);
+			GameObject parent = gameObject;
+			while (parent.transform.parent != null)
+			{
+				parent = parent.transform.parent.gameObject;
+			}
+			Destroy(parent);
 		}
+	}
+
+	public void SetColor(Color color)
+	{
+		GetComponent<Renderer>().material.color = color;
 	}
 
 	void Start()
