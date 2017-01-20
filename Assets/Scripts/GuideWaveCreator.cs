@@ -27,7 +27,7 @@ public class GuideWaveCreator : MonoBehaviour
 
 	private void CreateRibbonHandle(GameObject parentGO)
 	{
-		GameObject go = Instantiate(GuidePrefab) as GameObject;
+		GameObject go = Instantiate(RibbonHandlePrefab) as GameObject;
 		go.transform.position = new Vector3(0.0f, 0.0f, 0.0f);
 		go.transform.SetParent(parentGO.transform, false);
 	}
@@ -40,6 +40,7 @@ public class GuideWaveCreator : MonoBehaviour
 			float fraction = (float)i / (float)(NumGuidesToCreate - 1);
 			Vector2 rnd2d = Random.insideUnitCircle;
 			Vector3 position = headPosition + new Vector3(rnd2d.x, Mathf.Sin(fraction), rnd2d.y) * DistanceFromHead;
+			CreateGuide(position);
 		}
 	}
 
