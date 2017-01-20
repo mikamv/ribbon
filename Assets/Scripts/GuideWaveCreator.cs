@@ -20,7 +20,7 @@ public class GuideWaveCreator : MonoBehaviour
 	{
 		GameObject go = Instantiate(GuidePrefab) as GameObject;
 		go.transform.position = position;
-		Guide guide = go.GetComponent<Guide>();
+		Guide guide = go.GetComponentInChildren<Guide>();
 		guide.GuideWaveCreator = this;
 		guides.Add(guide);
 	}
