@@ -2,10 +2,8 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic; //needed for List
 
-
 public class RibbonSolve : MonoBehaviour
 {
-	
 	public int gridWidth = 10;
 	public int gridHeight = 10;
 	public float gridSize = 0.5f;
@@ -36,8 +34,8 @@ public class RibbonSolve : MonoBehaviour
 	private Vector3 collPos;	
 
 	// Use this for initialization
-	void Start () {
-
+	void Start ()
+    {
 		Mesh gridmesh = createGrid (gridWidth, gridHeight);
 
 		initParticles(gridmesh);
@@ -51,57 +49,63 @@ public class RibbonSolve : MonoBehaviour
 	{
 		Mesh gridmesh = GetComponent<MeshFilter>().mesh;
 		
-        Vector3[] vertices	= gridmesh.vertices;
+        Vector3[] vertices = gridmesh.vertices;
 		
 		updateParticlesExplicitEuler();
 		updateParticlesCollision();
 		updateConstraints();
 		
 		int i = 0;
-	    while (i < vertices.Length)
-        { //copy particle pos to mesh verts
+	    while (i < vertices.Length) //copy particle pos to mesh verts
+        {
+            //vertices[i] = transform.TransformPoint(p_pos[i]);
             vertices[i] = p_pos[i];
             i++;
         }
 		gridmesh.vertices = vertices;
 		gridmesh.RecalculateNormals();
-
 	}
 
-	void updateParticlesExplicitEuler(){
-		for(int substep = 0; substep < substeps; substep++){
-			int i = 0;
-			while (i < p_pos.Length) {
-				
-	            p_force[i] = 5 * Vector3.down + calcForce(i); //gravity plus spring forces
-				p_force[i][2] = 0.0f; // no force in z, keep planar
+	void updateParticlesExplicitEuler()
+    {
+        for (int substep = 0; substep < substeps; substep++)
+        {
+            int i = 0;
+            while (i < p_pos.Length)
+            {
+                p_force[i] = 5.0f * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ); //gravity plus spring forces
+                //p_force[i][2] = 0.0f; // no force in z, keep planar
+                i++;
+            }
+            i = 0;
+            while (i < p_pos.Length)    //explicit euler integration
+            {
+                p_vel[i] += p_force[i] * Time.fixedDeltaTime / substeps;
+	            p_pos[i] += p_vel[i]   * Time.fixedDeltaTime / substeps;
 				i++;
 	        }
-			i = 0;
-			while (i < p_pos.Length) { //explicit euler integration
-	            p_vel[i] += p_force[i] * Time.fixedDeltaTime/substeps;
-	            p_pos[i] += p_vel[i]   * Time.fixedDeltaTime/substeps;
-				i++;
-	        }
-		}//substep	
+		} //substep	
 	}
 	
-	void updateParticlesRungeKutta(){
-		for(int substep = 0; substep < substeps; substep++){
-			
+	void updateParticlesRungeKutta()
+    {
+		for(int substep = 0; substep < substeps; substep++)
+        {
 			int i = 0;
-			while (i < p_pos.Length) {
-				runge[0, i] = p_vel[i];	//a1
-				runge[1, i] = 5*Vector3.down + calcForce(i); //a2
+			while (i < p_pos.Length)
+            {
+				runge[0, i] = p_vel[ i ];                                                                          //a1
+				runge[1, i] = 5.0f * transform.TransformDirection( Vector3.down ) + calcForce( i );                //a2
 				i++;
 	        }
 			i = 0;
-			while (i < p_pos.Length) {
-				runge[2, i] = p_vel[i] + Time.fixedDeltaTime/(2*substeps) * runge[1, i];	//b1
-				runge[3, i] = 5 * Vector3.down + calcForceRK(i);       //b2
+			while (i < p_pos.Length)
+            {
+				runge[2, i] = p_vel[i] + Time.fixedDeltaTime / ( 2 * substeps ) * runge[1, i];	            //b1
+				runge[3, i] = 5.0f * transform.TransformDirection( Vector3.down ) + calcForceRK( i );       //b2
 				
-	            p_vel[i] += p_force[i] * Time.fixedDeltaTime/substeps;
-	            p_pos[i] += p_vel[i]   * Time.fixedDeltaTime/substeps;
+	            p_vel[i] += p_force[i] * Time.fixedDeltaTime / substeps;
+	            p_pos[i] += p_vel[i]   * Time.fixedDeltaTime / substeps;
 				i++;
 	        }
 		}//substep
@@ -111,9 +115,9 @@ public class RibbonSolve : MonoBehaviour
     {
         return Vector3.zero;
 	}
+
 	Vector3 calcForce(int point)
     {
-		
 		float	dist	= 0.0f;
 		Vector3	diff	= Vector3.zero;
 		Vector3 diff_v	= Vector3.zero;
@@ -122,51 +126,47 @@ public class RibbonSolve : MonoBehaviour
 
 		Vector3 force = Vector3.zero;
 		Vector3 total_force = Vector3.zero;
-		while (i < max_constraints_per_point) { // i constraints per point
-
-			int c_curr	= p_constraints[point, i];	// i-th constraint from this point's constraint list
-			if( c_curr == -1 || c_active[c_curr] == false) { //if no constraint or broken constraint
+		while ( i < max_constraints_per_point )                 // i constraints per point
+        { 
+			int c_curr	= p_constraints[point, i];	            // i-th constraint from this point's constraint list
+			if( c_curr == -1 || c_active[c_curr] == false)      // if no constraint or broken constraint
+            { 
 				i++;
 				continue;
 			}
-//			print ("i " + i + " c_curr " + c_curr); //debug
+//			print ("i " + i + " c_curr " + c_curr); // debug
 
 			int p_start	= c_ends[c_curr, 0];		// the point index this constraint starts at
 			int p_end 	= c_ends[c_curr, 1];		// and ends at
 
 			diff = p_pos[p_end] - p_pos[p_start];
 			dist = diff.magnitude;
-
-
 			
-			force =  c_stiff[i] * diff  * (dist - c_len[c_curr])/dist;				// spring force	(3.1)
+			force =  c_stiff[i] * diff  * (dist - c_len[c_curr]) / dist;	// spring force	(3.1)
 
 			diff_v = p_vel[p_end] - p_vel[p_start];
-
-			force +=  c_damp[i] * Vector3.Project( diff_v, diff );		//damping force (3.3)
+			force +=  c_damp[i] * Vector3.Project( diff_v, diff );		    // damping force (3.3)
 			
-			if(p_end == point) force *= -1.0f; // negate the constraint force if current is at the hind end of the constraint
+			if(p_end == point) force *= -1.0f;      // negate the constraint force if current is at the hind end of the constraint
 			
 			total_force += force / dist;
 			i++;		
 		}
 		return total_force;
-	
 	}
 	
-	void updateParticlesCollision(){
-		
+	void updateParticlesCollision()
+    {	
 		// ground collisions
-		
 		int i = 0;
 		while (i < p_pos.Length)
         {
-            if(p_pos[i][1] < -4.0f){ // ground level
-				
-				p_pos[i][1] = -4.001f;
-				p_vel[i] *= 0.9f; //drag
-				p_vel[i][1] = -0.8f*p_vel[i][1]; //bounciness
-
+            if( transform.TransformPoint( p_pos[i] )[1] < -4.0f ) // ground level
+            {
+                //p_pos[i][1] = -3.99f;				
+                p_pos[i][1] = transform.TransformPoint(new Vector3(0, -3.99f, 0))[1];
+                p_vel[i] *= 0.9f; //drag
+				p_vel[i][1] = -0.8f * transform.TransformPoint( p_vel[i] )[1]; //bounciness
 			}
 			i++;
         }
@@ -176,13 +176,14 @@ public class RibbonSolve : MonoBehaviour
 		float collRadius = 0.5f;
 		Vector3 impulse = Vector3.zero;
 		Vector3 impulseTotal = Vector3.zero;
-		Vector3 p_diff = new Vector3 (0,0,0);
-		for (int p = 0; p < p_pos.Length; p++) {
+		Vector3 p_diff = new Vector3 ( 0, 0, 0 );
+		for ( int p = 0; p < p_pos.Length; p++ )
+        {
 			p_diff = p_pos[p] - collPos; // vector from collider center to current point
-            if(p_diff.magnitude < collRadius){ // collider radius
-				
-				p_pos[p] += (collRadius - p_diff.magnitude )* p_diff.normalized; // move point to outside edge of collider
-				impulse = 0.5f* p_diff.normalized + 0.3f * collObj.GetComponent<Rigidbody>().velocity; //bounciness/friction. point gets velocity both along collider surface normal direction as well as collider velocity direction 
+            if( p_diff.magnitude < collRadius ) // collider radius
+            { 
+				p_pos[p] += ( collRadius - p_diff.magnitude ) * p_diff.normalized; // move point to outside edge of collider
+				impulse = 0.5f * p_diff.normalized + 0.3f * collObj.GetComponent<Rigidbody>().velocity; //bounciness/friction. point gets velocity both along collider surface normal direction as well as collider velocity direction 
 				p_vel[p] += impulse;
 				impulseTotal += impulse - 0.3f * p_vel[p];
 			}
@@ -192,31 +193,33 @@ public class RibbonSolve : MonoBehaviour
 		collObj.GetComponent<Rigidbody>().velocity -= 0.12f * impulseTotal;
 	}
 	
-	void updateConstraints(){
+	void updateConstraints()
+    {
 		Vector3 diff = Vector3.zero;
 		float dist = 0.0f;
 		
-		for(int i = 0; i<c_count; i++){
-			
+		for(int i = 0; i<c_count; i++)
+        {
 			int c_start	= c_ends[i, 0];		// the point index this constraint starts at
 			int c_end 	= c_ends[i, 1];		// and ends at
 		
 			diff = p_pos[c_end] - p_pos[c_start];
 			dist = diff.magnitude;
 		
-		
-			if (dist > 0.9f){
+			if (dist > 0.9f)
+            {
 				c_active[i] = false;
 			}
 		}
 	}
 	
-	Mesh createGrid(int hres, int vres){ //horizontal, vertical resolution
+	Mesh createGrid(int hres, int vres)      //horizontal, vertical resolution
+    {
 		Mesh gridmesh = new Mesh();
-        Vector3[] vertices	= new Vector3[hres*vres];
-        Vector2[] uvs	= new Vector2[hres*vres];
+        Vector3[] vertices	= new Vector3[hres * vres];
+        Vector2[] uvs	= new Vector2[hres * vres];
 		int isize = 6;
-		int[] triangles = new int[isize*((hres-1)*(vres-1))];
+		int[] triangles = new int[isize * ( ( hres - 1 ) * ( vres - 1 ) ) ];
 		float size = gridSize;
 		
 		int i = 0;
@@ -224,24 +227,28 @@ public class RibbonSolve : MonoBehaviour
 		int trindex = 0;
 		
 		//create vertices
-		for(j = 0; j < vres; j++){
-			for(i = 0; i < hres; i++){
-				vertices[hres*j + i] = new Vector3( size*i, size*j, 0.0f );
-				uvs[hres*j + i] = new Vector2( i/hres, j/vres );
+		for(j = 0; j < vres; j++)
+        {
+			for(i = 0; i < hres; i++)
+            {
+				vertices[hres * j + i] = transform.TransformPoint( new Vector3( size * i, size * j, 0.0f ) );
+				uvs[hres * j + i] = new Vector2( i / hres, j / vres );
 			}	
 		}
 		//create tris
-		for(j = 0; j < vres-1; j++){
-			for(i = 0; i < hres-1; i++){
-				trindex = ((hres-1)*j + i)*isize;
+		for(j = 0; j < vres - 1; j++)
+        {
+			for(i = 0; i < hres - 1; i++)
+            {
+				trindex = ( ( hres - 1 ) * j + i ) * isize;
 
-				triangles[trindex + 0] = hres*j + i;			//tri 1 vert 0
-				triangles[trindex + 1] = hres*(j+1) + i;		//tri 1 vert 1
-				triangles[trindex + 2] = hres*(j+1) + i + 1;	//tri 1 vert 2
+				triangles[trindex + 0] = hres * j + i;		    	//tri 1 vert 0
+				triangles[trindex + 1] = hres * ( j + 1 ) + i;		//tri 1 vert 1
+				triangles[trindex + 2] = hres * ( j + 1 ) + i + 1;	//tri 1 vert 2
 			
-				triangles[trindex + 3] = hres*j + i;			//tri 2 vert 0
-				triangles[trindex + 4] = hres*(j+1) + i + 1;	//tri 2 vert 1
-				triangles[trindex + 5] = hres*j + i + 1;		//tri 2 vert 2
+				triangles[trindex + 3] = hres * j + i;		    	//tri 2 vert 0
+				triangles[trindex + 4] = hres * ( j + 1 ) + i + 1;	//tri 2 vert 1
+				triangles[trindex + 5] = hres * j + i + 1;	    	//tri 2 vert 2
 				
 			}	// i	
 		}		// j
@@ -249,14 +256,13 @@ public class RibbonSolve : MonoBehaviour
 		gridmesh.vertices = vertices;
 		gridmesh.uv = uvs;
 		gridmesh.triangles = triangles;
-        Debug.Log("mesh points " + vertices.Length );
+        //Debug.Log("mesh points " + vertices.Length );
 		return gridmesh;
 	}
-	
 
-	void initParticles(Mesh gridmesh){
-
-		p_pos = new Vector3[gridWidth*gridHeight];
+	void initParticles( Mesh gridmesh )
+    {
+		p_pos = new Vector3[gridWidth * gridHeight];
 		p_vel = new Vector3[p_pos.Length];
 		p_force = new Vector3[p_pos.Length];
 		p_constraints = new int[p_pos.Length, max_constraints_per_point];
@@ -264,22 +270,23 @@ public class RibbonSolve : MonoBehaviour
 		runge = new Vector3[4, p_pos.Length];
 		
 		int i = 0;
-		while (i < p_pos.Length) {
+		while (i < p_pos.Length)
+        {
             p_pos[i] = gridmesh.vertices[i];
             p_vel[i] = Vector3.zero;
             p_force[i] = Vector3.zero;
-			for(int c = 0; c < max_constraints_per_point; c++) {
+			for(int c = 0; c < max_constraints_per_point; c++)
+            {
 				p_constraints[i, c] = -1; //init constraint list to -1
 			}	
-
 			i++;
         }	
-		p_vel[0]=Vector3.up*initVel; //test
+		p_vel[0] = transform.TransformDirection(Vector3.up) * initVel; //test
 	}
 	
-	
-	void initConstraints(Mesh gridmesh){
-		c_count = ((gridWidth-1) * (gridHeight-1)) * 4 + gridWidth + gridHeight -2; // //quad grid with enforcement bars
+	void initConstraints( Mesh gridmesh )
+    {
+		c_count = ((gridWidth - 1) * (gridHeight - 1)) * 4 + gridWidth + gridHeight - 2; // //quad grid with enforcement bars
 
 		c_ends = new int[c_count, 2];
 		c_len = new float[c_count];
@@ -288,7 +295,8 @@ public class RibbonSolve : MonoBehaviour
 		c_active = new bool[c_count];
 
 		int i = 0;
-		while (i < c_count) {
+		while (i < c_count)
+        {
 			c_len[i] = 0.6f;		//todo: init lengths from endpoints below
 			c_stiff[i] = stiffness;		
 			c_damp[i] = damping;
@@ -301,9 +309,11 @@ public class RibbonSolve : MonoBehaviour
 		int vres = gridHeight;
 		int hres = gridWidth;
 		
-		for(j = 0; j < vres-1; j++){
-			for(i = 0; i < hres-1; i++){					// loop all points except last row and last column
-				c_index = c_size * ((hres-1)*j + i);
+		for(j = 0; j < vres-1; j++)
+        {
+			for(i = 0; i < hres-1; i++)
+            {           					// loop all points except last row and last column
+				c_index = c_size * ((hres - 1) * j + i);
 				// define constraint end points
 				/*
 				+--1--->
@@ -315,49 +325,53 @@ public class RibbonSolve : MonoBehaviour
 				|/    >
 				
 				*/
-				c_ends[c_index + 0, 0] = hres*j + i;		//start point of first constraint for this point
-				c_ends[c_index + 0, 1] = hres*(j+1) + i;	//end point of first constraint for this point
+				c_ends[c_index + 0, 0] = hres * j + i;		//start point of first constraint for this point
+				c_ends[c_index + 0, 1] = hres * ( j + 1 ) + i;	//end point of first constraint for this point
 				c_len[c_index + 0] = gridSize;
 
-				c_ends[c_index + 1, 0] = hres*j + i;
-				c_ends[c_index + 1, 1] = hres*j + i + 1;
+				c_ends[c_index + 1, 0] = hres * j + i;
+				c_ends[c_index + 1, 1] = hres * j + i + 1;
 				c_len[c_index + 1] = gridSize;
 
-				c_ends[c_index + 2, 0] = hres*j + i;
-				c_ends[c_index + 2, 1] = hres*(j+1) + i + 1;
-				c_len[c_index + 2] = gridSize*1.4142f;
+				c_ends[c_index + 2, 0] = hres * j + i;
+				c_ends[c_index + 2, 1] = hres * ( j + 1 ) + i + 1;
+				c_len[c_index + 2] = gridSize * 1.4142f;
 
-				c_ends[c_index + 3, 0] = hres*(j+1) + i;
-				c_ends[c_index + 3, 1] = hres*j + i + 1;
-				c_len[c_index + 3] = gridSize*1.4142f;
+				c_ends[c_index + 3, 0] = hres * ( j + 1 ) + i;
+				c_ends[c_index + 3, 1] = hres * j + i + 1;
+				c_len[c_index + 3] = gridSize * 1.4142f;
 			}
 		}
 		
-		for(j = 0; j < vres; j++){
-			for(i = 0; i < hres; i++){
+		for(j = 0; j < vres; j++)
+        {
+			for(i = 0; i < hres; i++)
+            {
 				
-				if(j==vres-1 && i<hres-1){ 					//last row
-					c_index = c_size * ((hres-1)*j) + i;
-					c_ends[c_index + 0, 0] = hres*j + i;
-					c_ends[c_index + 0, 1] = hres*j + i + 1;
+				if( j == vres - 1 && i < hres - 1)     //last row
+                { 					
+					c_index = c_size * ((hres-1) * j) + i;
+					c_ends[c_index + 0, 0] = hres * j + i;
+					c_ends[c_index + 0, 1] = hres * j + i + 1;
 				}
-				if(j<vres-1 && i==hres-1){ 					//last column
-					c_index = c_size * ((hres-1)*(vres-1)) + (hres-1) + j;
-					c_ends[c_index + 0, 0] = hres*j + i;	
-					c_ends[c_index + 0, 1] = hres*(j + 1) + i;	
+				if( j < vres - 1 && i == hres - 1 )           //last column
+                { 					
+					c_index = c_size * ( ( hres - 1 ) * ( vres - 1 ) ) + ( hres - 1) + j;
+					c_ends[c_index + 0, 0] = hres * j + i;	
+					c_ends[c_index + 0, 1] = hres * (j + 1) + i;	
 				}
 			}
 		}
 		
 		//precalc per point which constraints affect given point
-		for(i = 0; i < p_pos.Length; i++){
-
+		for(i = 0; i < p_pos.Length; i++)
+        {
 			j = 0;
-			for(int c = 0; c < c_count; c++){
-			
-				if(c_ends[c,0]==i ||c_ends[c,1]==i ){
-				
-					p_constraints[i,j]=c;
+			for(int c = 0; c < c_count; c++)
+            {
+				if(c_ends[c,0]==i ||c_ends[c,1]==i )
+                {
+					p_constraints[i,j] = c;
 					j++;
 				} 
 			}
