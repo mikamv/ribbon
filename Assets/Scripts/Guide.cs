@@ -6,9 +6,10 @@ public class Guide : MonoBehaviour
 {
 	public GuideWaveCreator GuideWaveCreator;
 
-	void OnCollisionEnter(Collision collision)
+	void OnTriggerEnter(Collider collider)
 	{
-		if (collision.gameObject.layer == LayerMask.NameToLayer("Controller"))
+		Debug.Log("Collision! " + collider.gameObject.layer);
+		if (collider.gameObject.layer == LayerMask.NameToLayer("Controller"))
 		{
 			GuideWaveCreator.OnGuideCollected(this);
 			Destroy(gameObject);
