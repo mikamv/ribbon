@@ -2,15 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Guide : MonoBehaviour {
+public class Guide : MonoBehaviour
+{
+	public GuideWaveCreator GuideWaveCreator;
 
-	// Use this for initialization
-	void Start () {
-		
+	void OnCollisionEnter(Collision collision)
+	{
+		if (collision.gameObject.layer == LayerMask.NameToLayer("Controller"))
+		{
+			GuideWaveCreator.OnGuideCollected(this);
+			Destroy(gameObject);
+		}
 	}
-	
-	// Update is called once per frame
-	void Update () {
+
+	void Update()
+	{
 		
 	}
 }
