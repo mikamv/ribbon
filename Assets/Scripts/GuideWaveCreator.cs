@@ -9,19 +9,21 @@ public class GuideWaveCreator : MonoBehaviour
 
 	public GameObject RibbonHandlePrefab;
 	public GameObject GuidePrefab;
-	public int NumGuidesToCreate = 5;
+	public float ArcLength = 90.0f;
 	public float DistanceFromHead = 0.6f;
+	public float HeightVariation = 0.25f;
 	public float WaveCooldown = 2.0f;
 
 	private float createCooldown = 0.0f;
 	private List<Guide> guides = new List<Guide>();
 
-	private void CreateGuide(Vector3 position)
+	private void CreateGuide(Vector3 position, float orderFraction)
 	{
 		GameObject go = Instantiate(GuidePrefab) as GameObject;
 		go.transform.position = position;
 		Guide guide = go.GetComponentInChildren<Guide>();
 		guide.GuideWaveCreator = this;
+		guide.OrderFraction = orderFraction;
 		guides.Add(guide);
 	}
 
@@ -35,12 +37,16 @@ public class GuideWaveCreator : MonoBehaviour
 	private void CreateWave()
 	{
 		Vector3 headPosition = Camera.main.transform.position;
+		int NumGuidesToCreate = 20;
+		float startAngle = -ArcLength * 0.5f;
+		float arcStep = ArcLength / NumGuidesToCreate;
+		float currentAngle = startAngle;
 		for (int i = 0; i < NumGuidesToCreate; i++)
 		{
 			float fraction = (float)i / (float)(NumGuidesToCreate - 1);
-			Vector2 rnd2d = Random.insideUnitCircle;
-			Vector3 position = headPosition + new Vector3(rnd2d.x, Mathf.Sin(fraction), rnd2d.y) * DistanceFromHead;
-			CreateGuide(position);
+			Vector3 position = headPosition + new Vector3(Mathf.Cos(currentAngle * Mathf.Deg2Rad), Mathf.Sin(fraction * 8.0f) * HeightVariation, Mathf.Sin(currentAngle * Mathf.Deg2Rad)) * DistanceFromHead;
+			CreateGuide(position, fraction);
+			currentAngle += arcStep;
 		}
 	}
 
