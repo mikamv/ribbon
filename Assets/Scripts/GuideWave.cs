@@ -12,12 +12,33 @@ public class GuideWave : MonoBehaviour
 	public int ScaleEffectGuideCount = 3;
 	public float ScaleEffectSize = 2.0f;
 
+	public float MaxDistanceToRibbon = 0.2f;
+
 	private GuideWaveCreator guideWaveCreator;
 	private List<GameObject> guideGameObjects = new List<GameObject>();
 	private List<Guide> guides = new List<Guide>();
 	private int nextGuideIndex;
 	private float restartTimer;
 	private RibbonController targetRibbonController;
+
+	private SteamVR_Controller.Device leftControllerDevice;
+	private SteamVR_Controller.Device rightControllerDevice;
+
+	private RibbonSolve[] ribbonSolvers;
+
+	public void Start()
+	{
+		ribbonSolvers = FindObjectsOfType<RibbonSolve>();
+		SteamVR_ControllerManager controllerManager = FindObjectOfType<SteamVR_ControllerManager>();
+		if (controllerManager != null)
+		{
+			SteamVR_TrackedObject leftObject = controllerManager.left.GetComponent<SteamVR_TrackedObject>();
+			leftControllerDevice = SteamVR_Controller.Input((int)leftObject.index);
+
+			SteamVR_TrackedObject rightObject = controllerManager.right.GetComponent<SteamVR_TrackedObject>();
+			rightControllerDevice = SteamVR_Controller.Input((int)rightObject.index);
+		}
+	}
 
 	public int TargetHandIndex
 	{
@@ -53,43 +74,36 @@ public class GuideWave : MonoBehaviour
 
 	private void restart()
 	{
-		nextGuideIndex = 0;
-		restartTimer = RestartTime;
-		for (int i = 0; i < guides.Count; i++)
-		{
-			guideGameObjects[i].transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-			guides[i].setNeutral();
-		}
-		guides[0].setActive();
 	}
 
 	public void OnGuideHit(Guide guide)
 	{
-		for (int i = nextGuideIndex; i < Mathf.Clamp(nextGuideIndex + ScaleEffectGuideCount, 0, guides.Count - 1); i++)
-		{
-			if (guide == guides[i])
-			{
-				restartTimer = RestartTime;
-				if (nextGuideIndex + 1 < guides.Count)
-				{
-					SetNextTarget(nextGuideIndex + 1);
-				}
-				else
-				{
-					// We're done
-					completed();
-				}
-				break;
-			}
-		}
 	}
 
-	private void completed()
+	private void collect()
 	{
-		for (int i = 0; i < guideGameObjects.Count; i++)
+		if (ribbonSolvers != null)
 		{
-			Destroy(guideGameObjects[i]);
+			for (int i = 0; i < ribbonSolvers.Length; i++)
+			{
+				RibbonSolve ribbonSolve = ribbonSolvers[i];
+				for (int j = 0; j < guides.Count; j++)
+				{
+					float distance = ribbonSolve.getClosestDistance(guides[j].transform.position);
+					bool closeEnough = (distance <= MaxDistanceToRibbon);
+					if (!closeEnough)
+					{
+						Destroy(guideGameObjects[j]);
+					}
+					else
+					{
+						guides[j].Collect();
+					}
+				}
+			}
 		}
+
+		guides.Clear();
 		guideGameObjects.Clear();
 
 		guideWaveCreator.OnGuideWaveCompleted(this);
@@ -122,19 +136,31 @@ public class GuideWave : MonoBehaviour
 
 	public void Update()
 	{
-		if (nextGuideIndex > 0)
+		if (leftControllerDevice.GetHairTrigger() || rightControllerDevice.GetHairTrigger())
 		{
-			restartTimer -= Time.deltaTime;
-			if (restartTimer < 0.0f)
+			collect();
+			return;
+		}
+
+		if (ribbonSolvers != null)
+		{
+			for (int i = 0; i < ribbonSolvers.Length; i++)
 			{
-				restart();
+				RibbonSolve ribbonSolve = ribbonSolvers[i];
+				for (int j = 0; j < guides.Count; j++)
+				{
+					float distance = ribbonSolve.getClosestDistance(guides[j].transform.position);
+					bool closeEnough = (distance <= MaxDistanceToRibbon);
+					if (closeEnough)
+					{
+						guides[j].setActive();
+					}
+					else
+					{
+						guides[j].setNeutral();
+					}
+				}
 			}
-			/*
-			if (targetRibbonController != null && (nextGuideToHit.transform.position - targetRibbonController.getPosition()).magnitude > RestartDistanceToGuide)
-			{
-				restart();
-			}
-			*/
 		}
 	}
 
