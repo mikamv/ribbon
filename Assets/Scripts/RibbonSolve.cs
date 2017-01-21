@@ -8,9 +8,10 @@ public class RibbonSolve : MonoBehaviour
 	public int gridHeight = 10;
 	public float gridSize = 0.5f;
 	public float stiffness = 100.0f;
-	public float damping = 10.0f;
-	
-	public bool enforcementBars = true;
+    public float damping = 10.0f;
+    public float gravity = 5.0f;
+
+    public bool enforcementBars = true;
 	public int substeps = 2;
 	public float initVel = 3.0f;
 	
@@ -29,9 +30,10 @@ public class RibbonSolve : MonoBehaviour
 	private Vector3[,] runge;
 	
 	private int max_constraints_per_point = 8; //inside grid points with enforcement bars has 8 constraints
-	
-	public GameObject collObj;
-	private Vector3 collPos;	
+
+    public GameObject collObj;
+    public GameObject controllerObj;
+    private Vector3 collPos;	
 
 	// Use this for initialization
 	void Start ()
@@ -43,6 +45,7 @@ public class RibbonSolve : MonoBehaviour
 		collObj = GameObject.Find("Sphere");
 		
 		GetComponent<MeshFilter>().mesh = gridmesh;
+        collObj.transform.parent = controllerObj.transform;
 	}
 
 	void FixedUpdate ()
@@ -53,13 +56,13 @@ public class RibbonSolve : MonoBehaviour
 		
 		updateParticlesExplicitEuler();
 		updateParticlesCollision();
-		updateConstraints();
+		//updateConstraints();
 		
 		int i = 0;
 	    while (i < vertices.Length) //copy particle pos to mesh verts
         {
-            //vertices[i] = transform.TransformPoint(p_pos[i]);
-            vertices[i] = p_pos[i];
+            vertices[i] = transform.TransformPoint(p_pos[i]);
+            //vertices[i] = p_pos[i];
             i++;
         }
 		gridmesh.vertices = vertices;
@@ -73,7 +76,7 @@ public class RibbonSolve : MonoBehaviour
             int i = 0;
             while (i < p_pos.Length)
             {
-                p_force[i] = 5.0f * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ); //gravity plus spring forces
+                p_force[i] = gravity * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ); //gravity plus spring forces
                 //p_force[i][2] = 0.0f; // no force in z, keep planar
                 i++;
             }
@@ -171,7 +174,7 @@ public class RibbonSolve : MonoBehaviour
 			i++;
         }
 		collPos = collObj.transform.position;
-		
+		/*
 		// collider object collisions
 		float collRadius = 0.5f;
 		Vector3 impulse = Vector3.zero;
@@ -188,12 +191,20 @@ public class RibbonSolve : MonoBehaviour
 				impulseTotal += impulse - 0.3f * p_vel[p];
 			}
         }
-		
-		//feedback to collider
-		collObj.GetComponent<Rigidbody>().velocity -= 0.12f * impulseTotal;
-	}
-	
-	void updateConstraints()
+        */
+        //feedback to collider
+        //collObj.GetComponent<Rigidbody>().velocity -= 0.12f * impulseTotal;
+
+        //parent first point to collObj
+        p_pos[0] = collObj.transform.position;
+        p_vel[0] = collObj.GetComponent<Rigidbody>().velocity;
+
+        p_pos[gridWidth] = collObj.transform.position - new Vector3(0.0f, -gridSize, 0.0f);
+        p_vel[gridWidth] = collObj.GetComponent<Rigidbody>().velocity;
+
+    }
+
+    void updateConstraints()
     {
 		Vector3 diff = Vector3.zero;
 		float dist = 0.0f;
@@ -206,7 +217,7 @@ public class RibbonSolve : MonoBehaviour
 			diff = p_pos[c_end] - p_pos[c_start];
 			dist = diff.magnitude;
 		
-			if (dist > 0.9f)
+			if (dist > 0.9f) // fracturing
             {
 				c_active[i] = false;
 			}
@@ -280,11 +291,14 @@ public class RibbonSolve : MonoBehaviour
 				p_constraints[i, c] = -1; //init constraint list to -1
 			}	
 			i++;
-        }	
-		p_vel[0] = transform.TransformDirection(Vector3.up) * initVel; //test
-	}
-	
-	void initConstraints( Mesh gridmesh )
+        }
+        //p_vel[0] = transform.TransformDirection(Vector3.up) * initVel; //test
+
+        p_pos[0] = collObj.transform.position; // init the first points to collider obj
+        p_pos[gridWidth] = collObj.transform.position - new Vector3(0.0f, -gridSize, 0.0f);
+    }
+
+    void initConstraints( Mesh gridmesh )
     {
 		c_count = ((gridWidth - 1) * (gridHeight - 1)) * 4 + gridWidth + gridHeight - 2; // //quad grid with enforcement bars
 
@@ -297,7 +311,7 @@ public class RibbonSolve : MonoBehaviour
 		int i = 0;
 		while (i < c_count)
         {
-			c_len[i] = 0.6f;		//todo: init lengths from endpoints below
+			c_len[i] = 0f;		//todo: init lengths from endpoints below
 			c_stiff[i] = stiffness;		
 			c_damp[i] = damping;
 			c_active[i] = true;
@@ -353,14 +367,16 @@ public class RibbonSolve : MonoBehaviour
 					c_index = c_size * ((hres-1) * j) + i;
 					c_ends[c_index + 0, 0] = hres * j + i;
 					c_ends[c_index + 0, 1] = hres * j + i + 1;
-				}
-				if( j < vres - 1 && i == hres - 1 )           //last column
+                    c_len[c_index + 0] = gridSize;
+                }
+                if ( j < vres - 1 && i == hres - 1 )           //last column
                 { 					
 					c_index = c_size * ( ( hres - 1 ) * ( vres - 1 ) ) + ( hres - 1) + j;
 					c_ends[c_index + 0, 0] = hres * j + i;	
-					c_ends[c_index + 0, 1] = hres * (j + 1) + i;	
-				}
-			}
+					c_ends[c_index + 0, 1] = hres * (j + 1) + i;
+                    c_len[c_index + 0] = gridSize;
+                }
+            }
 		}
 		
 		//precalc per point which constraints affect given point
