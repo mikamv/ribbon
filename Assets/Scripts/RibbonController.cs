@@ -10,4 +10,9 @@ public class RibbonController : MonoBehaviour
 	{
 		return transform.position;
 	}
+
+	public void SetColor(Color color)
+	{
+		GetComponent<Renderer>().material.color = color;
+	}
 }

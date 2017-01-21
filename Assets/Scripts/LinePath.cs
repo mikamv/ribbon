@@ -27,6 +27,10 @@ public class LinePath
 		if (positions.Count > 0)
 		{
 			currentPosition = positions[0];
+			if (positions.Count > 1)
+			{
+				currentDirection = (positions[1] - positions[0]).normalized;
+			}
 			currentDistance = 0.0f;
 			currentIndex = 0;
 		}
@@ -40,25 +44,38 @@ public class LinePath
 		}
 	}
 
+	public Vector3 Direction
+	{
+		get
+		{
+			return currentDirection;
+		}
+	}
+
 	public void Advance(float distance)
 	{
-		if (positions.Count > 0)
-		{
-			currentPosition = positions[positions.Count - 1];
-		}
-
 		currentDistance = Mathf.Clamp(currentDistance + distance, 0, pathLength);
 		while (currentIndex < positions.Count)
 		{
 			if (currentIndex > 0 && distances[currentIndex] >= currentDistance)
 			{
 				float segmentLength = distances[currentIndex] - distances[currentIndex - 1];
-				float distanceAtSegment = distance - distances[currentIndex - 1];
+				float distanceAtSegment = currentDistance - distances[currentIndex - 1];
 				float segmentFraction = distanceAtSegment / segmentLength;
 				currentPosition = Vector3.Lerp(positions[currentIndex - 1], positions[currentIndex], segmentFraction);
-				break;
+				currentDirection = (positions[currentIndex] - positions[currentIndex - 1]).normalized;
+				return;
 			}
 			currentIndex++;
+		}
+
+		if (positions.Count > 0)
+		{
+			currentPosition = positions[positions.Count - 1];
+			if (positions.Count > 1)
+			{
+				currentDirection = (positions[1] - positions[0]).normalized;
+			}
 		}
 	}
 
@@ -66,6 +83,7 @@ public class LinePath
 	private float currentDistance;
 	private int currentIndex;
 	private Vector3 currentPosition;
+	private Vector3 currentDirection;
 	private List<Vector3> positions = new List<Vector3>();
 	private List<float> distances = new List<float>();
 }

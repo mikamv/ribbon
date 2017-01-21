@@ -43,7 +43,7 @@ public class GuideWaveCreator : MonoBehaviour
 	{
 		Vector3 headPosition = Camera.main.transform.position;
 		
-		Quaternion localRotation = Quaternion.AngleAxis(Random.Range(0.0f, 360.0f), new Vector3(0.0f, 1.0f, 0.0f));
+		Quaternion localRotation = Quaternion.AngleAxis(Random.Range(0.0f, 180.0f) + handTargetId * 180.0f, new Vector3(0.0f, 1.0f, 0.0f));
 
 		CreateGuideWave(headPosition, localRotation, handTargetId);
 	}
@@ -59,8 +59,10 @@ public class GuideWaveCreator : MonoBehaviour
 	{
 		RibbonController right = CreateRibbonHandle(Right);
 		right.HandId = 0;
+		right.SetColor(Color.red);
 		RibbonController left = CreateRibbonHandle(Left);
 		left.HandId = 1;
+		left.SetColor(Color.green);
 	}
 
 	void Update()
@@ -75,7 +77,7 @@ public class GuideWaveCreator : MonoBehaviour
 			}
 			else
 			{
-				CreateWave(guideWaves[0].TargetHandIndex);
+				CreateWave((guideWaves[0].TargetHandIndex + 1) % 2);
 			}
 		}
 	}
