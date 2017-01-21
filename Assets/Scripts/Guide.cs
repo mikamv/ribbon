@@ -9,6 +9,8 @@ public class Guide : MonoBehaviour
 	private Vector3 originalPosition;
 	private Color baseColor;
 
+	public Renderer[] Renderers;
+
 	void OnTriggerEnter(Collider collider)
 	{
 		RibbonController ribbonController = collider.gameObject.GetComponent<RibbonController>();
@@ -33,21 +35,32 @@ public class Guide : MonoBehaviour
 		transform.localPosition = originalPosition + new Vector3(0.0f, Mathf.Sin(Time.time * 3.0f), 0.0f) * 0.03f;
 	}
 
+	private void setMaterialColor(Color color)
+	{
+		if (Renderers != null)
+		{
+			for (int i = 0; i < Renderers.Length; i++)
+			{
+				Renderers[i].material.color = color;
+			}
+		}
+	}
+
 	public void setDimmed()
 	{
-		GetComponent<Renderer>().material.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0.3f);
+		setMaterialColor(new Color(baseColor.r, baseColor.g, baseColor.b, 0.3f));
 		transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 	}
 
 	public void setNeutral()
 	{
-		GetComponent<Renderer>().material.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0.3f);
+		setMaterialColor(new Color(baseColor.r, baseColor.g, baseColor.b, 0.3f));
 		transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
 	}
 
 	public void setActive()
 	{
-		GetComponent<Renderer>().material.color = new Color(baseColor.r, baseColor.g, baseColor.b, 1.0f);
+		setMaterialColor(new Color(baseColor.r, baseColor.g, baseColor.b, 1.0f));
 		transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
 	}
 }

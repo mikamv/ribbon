@@ -37,10 +37,10 @@ public class GuideWave : MonoBehaviour
 
 		TargetHandIndex = targetHandIndex;
 		LinePath linePath = bezier.getPath(100);
-		int numGuides = (int)(linePath.Length / GuideIntervalDistance);
+		int numGuides = (int)(linePath.Length / GuideIntervalDistance) + 1;
 		for (int i = 0; i < numGuides; i++)
 		{
-			createGuide(linePath.Position);
+			createGuide(linePath.Position, linePath.Direction);
 			linePath.Advance(GuideIntervalDistance);
 		}
 
@@ -101,21 +101,24 @@ public class GuideWave : MonoBehaviour
 			{
 				restart();
 			}
-
+			/*
 			if (targetRibbonController != null && (nextGuideToHit.transform.position - targetRibbonController.getPosition()).magnitude > RestartDistanceToGuide)
 			{
 				restart();
 			}
+			*/
 		}
 	}
 
-	private Guide createGuide(Vector3 position)
+	private Guide createGuide(Vector3 position, Vector3 direction)
 	{
 		GameObject go = Instantiate(GuidePrefab) as GameObject;
 		go.transform.position = position;
+		go.transform.localRotation = Quaternion.LookRotation(direction);
 		go.transform.parent = transform;
 		Guide guide = go.GetComponentInChildren<Guide>();
 		guide.GuideWave = this;
+		guide.HandTargetId = TargetHandIndex;
 		guides.Add(guide);
 		guideGameObjects.Add(go);
 		guide.SetColor(TargetHandIndex == 0 ? Color.red : Color.green);
