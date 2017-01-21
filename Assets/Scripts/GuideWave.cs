@@ -8,6 +8,7 @@ public class GuideWave : MonoBehaviour
 	public float GuideIntervalDistance = 0.15f;
 	public float RestartDistanceToGuide = 0.3f;
 	public float RestartTime = 0.5f;
+	public float CollectTime = 1.0f;
 
 	public int ScaleEffectGuideCount = 3;
 	public float ScaleEffectSize = 2.0f;
@@ -25,6 +26,8 @@ public class GuideWave : MonoBehaviour
 	private SteamVR_TrackedController rightController;
 
 	private RibbonSolve[] ribbonSolvers;
+
+	private float collectTimer;
 
 	public void Start()
 	{
@@ -81,21 +84,22 @@ public class GuideWave : MonoBehaviour
 	{
 		if (ribbonSolvers != null)
 		{
-			for (int i = 0; i < ribbonSolvers.Length; i++)
+			for (int j = 0; j < guides.Count; j++)
 			{
-				RibbonSolve ribbonSolve = ribbonSolvers[i];
-				for (int j = 0; j < guides.Count; j++)
+				bool closeEnough = false;
+				for (int i = 0; i < ribbonSolvers.Length; i++)
 				{
+					RibbonSolve ribbonSolve = ribbonSolvers[i];
 					float distance = ribbonSolve.getClosestDistance(guides[j].transform.position);
-					bool closeEnough = (distance <= MaxDistanceToRibbon);
-					if (!closeEnough)
-					{
-						Destroy(guideGameObjects[j]);
-					}
-					else
-					{
-						guides[j].Collect();
-					}
+					closeEnough = closeEnough || (distance <= MaxDistanceToRibbon);
+				}
+				if (!closeEnough)
+				{
+					Destroy(guideGameObjects[j]);
+				}
+				else
+				{
+					guides[j].Collect();
 				}
 			}
 		}
@@ -103,7 +107,7 @@ public class GuideWave : MonoBehaviour
 		guides.Clear();
 		guideGameObjects.Clear();
 
-		guideWaveCreator.OnGuideWaveCompleted(this);
+		collectTimer = CollectTime;
 	}
 
 	private void SetNextTarget(int index)
@@ -139,23 +143,34 @@ public class GuideWave : MonoBehaviour
 			return;
 		}
 
+		if (collectTimer > 0.0f)
+		{
+			collectTimer -= Time.deltaTime;
+			if (collectTimer <= 0.0f)
+			{
+				guideWaveCreator.OnGuideWaveCompleted(this);
+			}
+			return;
+		}
+
 		if (ribbonSolvers != null)
 		{
-			for (int i = 0; i < ribbonSolvers.Length; i++)
+			for (int j = 0; j < guides.Count; j++)
 			{
-				RibbonSolve ribbonSolve = ribbonSolvers[i];
-				for (int j = 0; j < guides.Count; j++)
+				bool closeEnough = false;
+				for (int i = 0; i < ribbonSolvers.Length; i++)
 				{
+					RibbonSolve ribbonSolve = ribbonSolvers[i];
 					float distance = ribbonSolve.getClosestDistance(guides[j].transform.position);
-					bool closeEnough = (distance <= MaxDistanceToRibbon);
-					if (closeEnough)
-					{
-						guides[j].setActive();
-					}
-					else
-					{
-						guides[j].setNeutral();
-					}
+					closeEnough = closeEnough || (distance <= MaxDistanceToRibbon);
+				}
+				if (closeEnough)
+				{
+					guides[j].setActive();
+				}
+				else
+				{
+					guides[j].setNeutral();
 				}
 			}
 		}
