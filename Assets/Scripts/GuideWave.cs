@@ -9,10 +9,12 @@ public class GuideWave : MonoBehaviour
 	public float RestartDistanceToGuide = 0.3f;
 	public float RestartTime = 0.5f;
 
+	public int ScaleEffectGuideCount = 3;
+	public float ScaleEffectSize = 2.0f;
+
 	private GuideWaveCreator guideWaveCreator;
 	private List<GameObject> guideGameObjects = new List<GameObject>();
 	private List<Guide> guides = new List<Guide>();
-	private Guide nextGuideToHit;
 	private int nextGuideIndex;
 	private float restartTimer;
 	private RibbonController targetRibbonController;
@@ -52,31 +54,32 @@ public class GuideWave : MonoBehaviour
 	private void restart()
 	{
 		nextGuideIndex = 0;
-		nextGuideToHit = guides[0];
 		restartTimer = RestartTime;
 		for (int i = 0; i < guides.Count; i++)
 		{
+			guideGameObjects[i].transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
 			guides[i].setNeutral();
 		}
-		nextGuideToHit.setActive();
+		guides[0].setActive();
 	}
 
 	public void OnGuideHit(Guide guide)
 	{
-		if (guide == nextGuideToHit)
+		for (int i = nextGuideIndex; i < Mathf.Clamp(nextGuideIndex + ScaleEffectGuideCount, 0, guides.Count - 1); i++)
 		{
-			restartTimer = RestartTime;
-			nextGuideIndex++;
-			if (nextGuideIndex < guides.Count)
+			if (guide == guides[i])
 			{
-				nextGuideToHit.setDimmed();
-				nextGuideToHit = guides[nextGuideIndex];
-				nextGuideToHit.setActive();
-			}
-			else
-			{
-				// We're done
-				completed();
+				restartTimer = RestartTime;
+				if (nextGuideIndex + 1 < guides.Count)
+				{
+					SetNextTarget(nextGuideIndex + 1);
+				}
+				else
+				{
+					// We're done
+					completed();
+				}
+				break;
 			}
 		}
 	}
@@ -92,9 +95,34 @@ public class GuideWave : MonoBehaviour
 		guideWaveCreator.OnGuideWaveCompleted(this);
 	}
 
+	private void SetNextTarget(int index)
+	{
+		// Dim ones that have been triggered
+		for (int i = nextGuideIndex; i < index; i++)
+		{
+			guides[i].setDimmed();
+		}
+
+		nextGuideIndex = index;
+
+		// Show next one as active
+		guides[nextGuideIndex].setActive();
+
+		// Scale smoothly around the active one
+		for (int i = -ScaleEffectGuideCount; i <= ScaleEffectGuideCount; i++)
+		{
+			float scale = 1.0f + (1.0f - (Mathf.Abs(i) / (float)ScaleEffectGuideCount)) * ScaleEffectSize;
+			int currentIndex = nextGuideIndex + i;
+			if (currentIndex >= 0 & currentIndex < guideGameObjects.Count)
+			{
+				guideGameObjects[currentIndex].transform.localScale = new Vector3(scale, scale, scale);
+			}
+		}
+	}
+
 	public void Update()
 	{
-		if (nextGuideToHit != null && nextGuideIndex > 0)
+		if (nextGuideIndex > 0)
 		{
 			restartTimer -= Time.deltaTime;
 			if (restartTimer < 0.0f)

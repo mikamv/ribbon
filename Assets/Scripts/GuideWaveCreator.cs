@@ -68,17 +68,10 @@ public class GuideWaveCreator : MonoBehaviour
 	void Update()
 	{
 		createCooldown -= Time.deltaTime;
-		if (guideWaves.Count < 2 && createCooldown <= 0.0f)
+		if (guideWaves.Count ==0 && createCooldown <= 0.0f)
 		{
-			if (guideWaves.Count == 0)
-			{
-				CreateWave(0);
-				CreateWave(1);
-			}
-			else
-			{
-				CreateWave((guideWaves[0].TargetHandIndex + 1) % 2);
-			}
+			CreateWave(0);
+			CreateWave(1);
 		}
 	}
 }
