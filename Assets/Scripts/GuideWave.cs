@@ -102,7 +102,7 @@ public class GuideWave : MonoBehaviour
 				restart();
 			}
 
-			if ((nextGuideToHit.transform.position - targetRibbonController.getPosition()).magnitude > RestartDistanceToGuide)
+			if (targetRibbonController != null && (nextGuideToHit.transform.position - targetRibbonController.getPosition()).magnitude > RestartDistanceToGuide)
 			{
 				restart();
 			}
