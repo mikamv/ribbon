@@ -67,6 +67,7 @@ public class RibbonSolve : MonoBehaviour
         }
 		gridmesh.vertices = vertices;
 		gridmesh.RecalculateNormals();
+        gridmesh.RecalculateBounds();
 	}
 
 	void updateParticlesExplicitEuler()
@@ -164,10 +165,10 @@ public class RibbonSolve : MonoBehaviour
 		int i = 0;
 		while (i < p_pos.Length)
         {
-            if( transform.TransformPoint( p_pos[i] )[1] < -4.0f ) // ground level
+            if( transform.TransformPoint( p_pos[i] )[1] < -0.01f ) // ground level
             {
                 //p_pos[i][1] = -3.99f;				
-                p_pos[i][1] = transform.TransformPoint(new Vector3(0, -3.99f, 0))[1];
+                p_pos[i][1] = transform.TransformPoint(new Vector3(0, 0.0f, 0))[1];
                 p_vel[i] *= 0.9f; //drag
 				p_vel[i][1] = -0.8f * transform.TransformPoint( p_vel[i] )[1]; //bounciness
 			}
