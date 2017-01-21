@@ -21,8 +21,8 @@ public class GuideWave : MonoBehaviour
 	private float restartTimer;
 	private RibbonController targetRibbonController;
 
-	private SteamVR_Controller.Device leftControllerDevice;
-	private SteamVR_Controller.Device rightControllerDevice;
+	private SteamVR_TrackedController leftController;
+	private SteamVR_TrackedController rightController;
 
 	private RibbonSolve[] ribbonSolvers;
 
@@ -32,11 +32,8 @@ public class GuideWave : MonoBehaviour
 		SteamVR_ControllerManager controllerManager = FindObjectOfType<SteamVR_ControllerManager>();
 		if (controllerManager != null)
 		{
-			SteamVR_TrackedObject leftObject = controllerManager.left.GetComponent<SteamVR_TrackedObject>();
-			leftControllerDevice = SteamVR_Controller.Input((int)leftObject.index);
-
-			SteamVR_TrackedObject rightObject = controllerManager.right.GetComponent<SteamVR_TrackedObject>();
-			rightControllerDevice = SteamVR_Controller.Input((int)rightObject.index);
+            leftController = controllerManager.left.GetComponent<SteamVR_TrackedController>();
+            rightController = controllerManager.right.GetComponent<SteamVR_TrackedController>();
 		}
 	}
 
@@ -136,7 +133,7 @@ public class GuideWave : MonoBehaviour
 
 	public void Update()
 	{
-		if (leftControllerDevice.GetHairTrigger() || rightControllerDevice.GetHairTrigger())
+		if (leftController.triggerPressed || rightController.triggerPressed)
 		{
 			collect();
 			return;
