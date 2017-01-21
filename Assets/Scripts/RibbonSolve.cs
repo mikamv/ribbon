@@ -42,7 +42,7 @@ public class RibbonSolve : MonoBehaviour
 
 		initParticles(gridmesh);
 		initConstraints(gridmesh);
-		collObj = GameObject.Find("Sphere");
+		//collObj = GameObject.Find("Sphere");
 		
 		GetComponent<MeshFilter>().mesh = gridmesh;
         collObj.transform.parent = controllerObj.transform;
@@ -77,7 +77,7 @@ public class RibbonSolve : MonoBehaviour
             int i = 0;
             while (i < p_pos.Length)
             {
-                p_force[i] = gravity * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ); //gravity plus spring forces
+                p_force[i] = gravity * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ) * 0.5f; //gravity plus spring forces
                 //p_force[i][2] = 0.0f; // no force in z, keep planar
                 i++;
             }
@@ -99,14 +99,14 @@ public class RibbonSolve : MonoBehaviour
 			while (i < p_pos.Length)
             {
 				runge[0, i] = p_vel[ i ];                                                                          //a1
-				runge[1, i] = 5.0f * transform.TransformDirection( Vector3.down ) + calcForce( i );                //a2
+				runge[1, i] = gravity * transform.TransformDirection( Vector3.down ) + calcForce( i );                //a2
 				i++;
 	        }
 			i = 0;
 			while (i < p_pos.Length)
             {
 				runge[2, i] = p_vel[i] + Time.fixedDeltaTime / ( 2 * substeps ) * runge[1, i];	            //b1
-				runge[3, i] = 5.0f * transform.TransformDirection( Vector3.down ) + calcForceRK( i );       //b2
+				runge[3, i] = gravity * transform.TransformDirection( Vector3.down ) + calcForceRK( i );       //b2
 				
 	            p_vel[i] += p_force[i] * Time.fixedDeltaTime / substeps;
 	            p_pos[i] += p_vel[i]   * Time.fixedDeltaTime / substeps;
@@ -165,10 +165,10 @@ public class RibbonSolve : MonoBehaviour
 		int i = 0;
 		while (i < p_pos.Length)
         {
-            if( transform.TransformPoint( p_pos[i] )[1] < -0.01f ) // ground level
+            if( transform.TransformPoint( p_pos[i] )[1] < 0.01f ) // ground level
             {
                 //p_pos[i][1] = -3.99f;				
-                p_pos[i][1] = transform.TransformPoint(new Vector3(0, 0.0f, 0))[1];
+                p_pos[i][1] = transform.TransformPoint(new Vector3(0, 0.02f, 0))[1];
                 p_vel[i] *= 0.9f; //drag
 				p_vel[i][1] = -0.8f * transform.TransformPoint( p_vel[i] )[1]; //bounciness
 			}
@@ -200,7 +200,7 @@ public class RibbonSolve : MonoBehaviour
         p_pos[0] = collObj.transform.position;
         p_vel[0] = collObj.GetComponent<Rigidbody>().velocity;
 
-        p_pos[gridWidth] = collObj.transform.position - new Vector3(0.0f, -gridSize, 0.0f);
+        p_pos[gridWidth] = collObj.transform.position - controllerObj.transform.TransformVector( new Vector3(0.0f, 0.0f, -gridSize) );
         p_vel[gridWidth] = collObj.GetComponent<Rigidbody>().velocity;
 
     }
