@@ -34,7 +34,21 @@ public class RibbonSolve : MonoBehaviour
 
     public GameObject collObj;
     public GameObject controllerObj;
-    private Vector3 collPos;	
+    private Vector3 collPos;
+
+	public float getClosestDistance(Vector3 pos)
+	{
+		float minSqrDistance = float.MaxValue;
+		for (int i = 0; i < p_pos.Length; i++)
+		{
+			float sqrDistance = (p_pos[i] - pos).sqrMagnitude;
+			if (sqrDistance < minSqrDistance)
+			{
+				minSqrDistance = sqrDistance;
+			}
+		}
+		return Mathf.Sqrt(minSqrDistance);
+	}
 
 	// Use this for initialization
 	void Start ()
