@@ -6,27 +6,29 @@ public class GuideWaveCreator : MonoBehaviour
 {
 	public GameObject Left;
 	public GameObject Right;
+	public List<Bezier> Beziers;
 
 	public GameObject RibbonHandlePrefab;
-	public GameObject GuidePrefab;
-	public float ArcLength = 90.0f;
-	public float DistanceFromHead = 0.6f;
-	public float HeightVariation = 0.25f;
+	public GameObject GuideWavePrefab;
+	
 	public float WaveCooldown = 2.0f;
 
 	private float createCooldown = 0.0f;
-	private List<Guide> guides = new List<Guide>();
-	private Guide[] nextGuideToHit = new Guide[2];
+	private List<GuideWave> guideWaves = new List<GuideWave>();
 
-	private Guide CreateGuide(Vector3 position, float orderFraction)
+	private GuideWave CreateGuideWave(Vector3 position, Quaternion localRotation, int targetHandIndex)
 	{
-		GameObject go = Instantiate(GuidePrefab) as GameObject;
+		Bezier bezier = Beziers[Random.Range(0, Beziers.Count)];
+		GameObject go = Instantiate(GuideWavePrefab) as GameObject;
+
+		GuideWave guideWave = go.GetComponentInChildren<GuideWave>();
+		guideWave.Init(this, bezier, targetHandIndex);
+
 		go.transform.position = position;
-		Guide guide = go.GetComponentInChildren<Guide>();
-		guide.GuideWaveCreator = this;
-		guide.OrderFraction = orderFraction;
-		guides.Add(guide);
-		return guide;
+		go.transform.localRotation = localRotation;
+		
+		guideWaves.Add(guideWave);
+		return guideWave;
 	}
 
 	private RibbonController CreateRibbonHandle(GameObject parentGO)
@@ -40,54 +42,17 @@ public class GuideWaveCreator : MonoBehaviour
 	private void CreateWave(int handTargetId)
 	{
 		Vector3 headPosition = Camera.main.transform.position;
-		int NumGuidesToCreate = 20;
-		float startAngle = -ArcLength * 0.5f;
-		float angleOfs = Random.Range(-25.0f, 25.0f);
-		float arcStep = ArcLength / NumGuidesToCreate;
-		float currentAngle = startAngle;
-		float yOfs = Random.Range(-0.1f, 0.1f);
-		Quaternion localRotation = Quaternion.AngleAxis(Random.Range(-45.0f, 45.0f), new Vector3(1.0f, 0.0f, 0.0f));
-		for (int i = 0; i < NumGuidesToCreate; i++)
-		{
-			float fraction = (float)i / (float)(NumGuidesToCreate - 1);
-			float angle = currentAngle + angleOfs;
-			Vector3 position = headPosition + localRotation * new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(fraction * 8.0f) * HeightVariation + yOfs, Mathf.Sin(angle * Mathf.Deg2Rad)) * DistanceFromHead;
-			Guide guide = CreateGuide(position, fraction);
-			guide.HandTargetId = handTargetId;
-			guide.SetColor(handTargetId == 0 ? Color.red : Color.green);
-			if (i == 0)
-			{
-				nextGuideToHit[handTargetId] = guide;
-			}
-			currentAngle += arcStep;
-		}
+		
+		Quaternion localRotation = Quaternion.AngleAxis(Random.Range(0.0f, 360.0f), new Vector3(0.0f, 1.0f, 0.0f));
+
+		CreateGuideWave(headPosition, localRotation, handTargetId);
 	}
 
-	public bool CanDestroyGuide(Guide guide)
+	public void OnGuideWaveCompleted(GuideWave guideWave)
 	{
-		return nextGuideToHit[guide.HandTargetId] == guide;
-	}
+		guideWaves.Remove(guideWave);
 
-	public void OnGuideCollected(Guide guide)
-	{
-		guides.Remove(guide);
-
-		if (guides.Count == 0)
-		{
-			createCooldown = WaveCooldown;
-		}
-		else
-		{
-			for (int i = 0; i < guides.Count; i++)
-			{
-				if (guides[i].HandTargetId == guide.HandTargetId)
-				{
-					nextGuideToHit[guide.HandTargetId] = guides[i];
-					break;
-				}
-			}
-			
-		}
+		Destroy(guideWave.gameObject);
 	}
 
 	void Start()
@@ -101,10 +66,17 @@ public class GuideWaveCreator : MonoBehaviour
 	void Update()
 	{
 		createCooldown -= Time.deltaTime;
-		if (guides.Count == 0 && createCooldown <= 0.0f)
+		if (guideWaves.Count < 2 && createCooldown <= 0.0f)
 		{
-			CreateWave(0);
-			CreateWave(1);
+			if (guideWaves.Count == 0)
+			{
+				CreateWave(0);
+				CreateWave(1);
+			}
+			else
+			{
+				CreateWave(guideWaves[0].TargetHandIndex);
+			}
 		}
 	}
 }
