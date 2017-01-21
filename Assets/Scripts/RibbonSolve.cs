@@ -10,6 +10,7 @@ public class RibbonSolve : MonoBehaviour
 	public float stiffness = 100.0f;
     public float damping = 10.0f;
     public float gravity = 5.0f;
+    public Vector3 posOffset = new Vector3(0.0f, 0.0f, 0.2f);
 
     public bool enforcementBars = true;
 	public int substeps = 2;
@@ -77,8 +78,9 @@ public class RibbonSolve : MonoBehaviour
             int i = 0;
             while (i < p_pos.Length)
             {
-                p_force[i] = gravity * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ) * 0.5f; //gravity plus spring forces
+                p_force[i] = gravity * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ); //gravity plus spring forces
                 //p_force[i][2] = 0.0f; // no force in z, keep planar
+                p_vel[i] *= 0.9985f; // damping
                 i++;
             }
             i = 0;
@@ -168,7 +170,7 @@ public class RibbonSolve : MonoBehaviour
             if( transform.TransformPoint( p_pos[i] )[1] < 0.01f ) // ground level
             {
                 //p_pos[i][1] = -3.99f;				
-                p_pos[i][1] = transform.TransformPoint(new Vector3(0, 0.02f, 0))[1];
+                p_pos[i][1] = transform.TransformPoint(new Vector3(0, 0.01f, 0))[1];
                 p_vel[i] *= 0.9f; //drag
 				p_vel[i][1] = -0.8f * transform.TransformPoint( p_vel[i] )[1]; //bounciness
 			}
@@ -197,10 +199,10 @@ public class RibbonSolve : MonoBehaviour
         //collObj.GetComponent<Rigidbody>().velocity -= 0.12f * impulseTotal;
 
         //parent first point to collObj
-        p_pos[0] = collObj.transform.position;
+        p_pos[0] = collObj.transform.position + controllerObj.transform.TransformVector( posOffset);
         p_vel[0] = collObj.GetComponent<Rigidbody>().velocity;
 
-        p_pos[gridWidth] = collObj.transform.position - controllerObj.transform.TransformVector( new Vector3(0.0f, 0.0f, -gridSize) );
+        p_pos[gridWidth] = collObj.transform.position - controllerObj.transform.TransformVector( new Vector3(0.0f, 0.0f, -gridSize) - posOffset);
         p_vel[gridWidth] = collObj.GetComponent<Rigidbody>().velocity;
 
     }
