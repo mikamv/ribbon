@@ -1,3 +1,4 @@
+// Eetu Martola, after Mathias Müller-Fischer
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic; //needed for List
@@ -32,9 +33,13 @@ public class RibbonSolve : MonoBehaviour
 	
 	private int max_constraints_per_point = 8; //inside grid points with enforcement bars has 8 constraints
 
-    public GameObject collObj;
+    public GameObject parentObj;
+    public GameObject collisionObj;
     public GameObject controllerObj;
     private Vector3 collPos;
+    private Vector3 collisionCapsuleA, collisionCapsuleB;
+    private CapsuleCollider collisionCapsule;
+    private Transform collisionTransform;
 
 	public float getClosestDistance(Vector3 pos)
 	{
@@ -57,13 +62,15 @@ public class RibbonSolve : MonoBehaviour
 
 		initParticles(gridmesh);
 		initConstraints(gridmesh);
-		//collObj = GameObject.Find("Sphere");
+		//parentObj = GameObject.Find("Sphere");
 		
 		GetComponent<MeshFilter>().mesh = gridmesh;
-        collObj.transform.parent = controllerObj.transform;
-	}
+        parentObj.transform.parent = controllerObj.transform;
+        collisionCapsule = collisionObj.GetComponent<CapsuleCollider>();
+        collisionTransform = collisionObj.transform;
+    }
 
-	void FixedUpdate ()
+    void FixedUpdate ()
 	{
 		Mesh gridmesh = GetComponent<MeshFilter>().mesh;
 		
@@ -71,7 +78,8 @@ public class RibbonSolve : MonoBehaviour
 		
 		updateParticlesExplicitEuler();
 		updateParticlesCollision();
-		//updateConstraints();
+        //updateConstraints(); // fracture
+        updateColliderInfo();
 		
 		int i = 0;
 	    while (i < vertices.Length) //copy particle pos to mesh verts
@@ -85,7 +93,14 @@ public class RibbonSolve : MonoBehaviour
         gridmesh.RecalculateBounds();
 	}
 
-	void updateParticlesExplicitEuler()
+    void updateColliderInfo()
+    {
+        collisionCapsuleA = collisionTransform.TransformPoint(collisionCapsule.center + new Vector3(0.0f, 0.0f, collisionCapsule.height ));
+        collisionCapsuleB = collisionTransform.TransformPoint(collisionCapsule.center - new Vector3(0.0f, 0.0f, collisionCapsule.height ));
+        Debug.DrawLine(collisionCapsuleA, collisionCapsuleB);
+    }
+
+    void updateParticlesExplicitEuler()
     {
         for (int substep = 0; substep < substeps; substep++)
         {
@@ -121,8 +136,8 @@ public class RibbonSolve : MonoBehaviour
 			i = 0;
 			while (i < p_pos.Length)
             {
-				runge[2, i] = p_vel[i] + Time.fixedDeltaTime / ( 2 * substeps ) * runge[1, i];	            //b1
-				runge[3, i] = gravity * transform.TransformDirection( Vector3.down ) + calcForceRK( i );       //b2
+				runge[2, i] = p_vel[i] + Time.fixedDeltaTime / ( 2 * substeps ) * runge[1, i];	                 //b1
+				runge[3, i] = gravity * transform.TransformDirection( Vector3.down ) + calcForceRK( i );         //b2
 				
 	            p_vel[i] += p_force[i] * Time.fixedDeltaTime / substeps;
 	            p_pos[i] += p_vel[i]   * Time.fixedDeltaTime / substeps;
@@ -190,8 +205,8 @@ public class RibbonSolve : MonoBehaviour
 			}
 			i++;
         }
-		collPos = collObj.transform.position;
-		/*
+		collPos = parentObj.transform.position;
+        /*
 		// collider object collisions
 		float collRadius = 0.5f;
 		Vector3 impulse = Vector3.zero;
@@ -203,22 +218,55 @@ public class RibbonSolve : MonoBehaviour
             if( p_diff.magnitude < collRadius ) // collider radius
             { 
 				p_pos[p] += ( collRadius - p_diff.magnitude ) * p_diff.normalized; // move point to outside edge of collider
-				impulse = 0.5f * p_diff.normalized + 0.3f * collObj.GetComponent<Rigidbody>().velocity; //bounciness/friction. point gets velocity both along collider surface normal direction as well as collider velocity direction 
+				impulse = 0.5f * p_diff.normalized + 0.3f * parentObj.GetComponent<Rigidbody>().velocity; //bounciness/friction. point gets velocity both along collider surface normal direction as well as collider velocity direction 
 				p_vel[p] += impulse;
 				impulseTotal += impulse - 0.3f * p_vel[p];
 			}
         }
         */
+
+		// collider object collisions
+		float collRadius = collisionCapsule.radius;
+        Vector3 collVel = parentObj.GetComponent<Rigidbody>().velocity;
+        Vector3 impulse = Vector3.zero;
+		Vector3 impulseTotal = Vector3.zero;
+		Vector3 p_diff = new Vector3 ( 0, 0, 0 );
+		for ( int p = 0; p < p_pos.Length; p++ )
+        {
+			//p_diff = p_pos[p] - collPos; // vector from collider center to current point
+            p_diff = p_pos[p] - ProjectPointLine(p_pos[p], collisionCapsuleA, collisionCapsuleB);
+            if( p_diff.magnitude < collRadius ) // collider radius
+            { 
+				p_pos[p] += ( collRadius - p_diff.magnitude ) * p_diff.normalized; // move point to outside edge of collider
+				impulse = 0.5f * p_diff.normalized + 0.3f * collVel; //bounciness/friction. point gets velocity both along collider surface normal direction as well as collider velocity direction 
+				p_vel[p] += impulse;
+				impulseTotal += impulse - 0.3f * p_vel[p];
+			}
+        }
+
         //feedback to collider
-        //collObj.GetComponent<Rigidbody>().velocity -= 0.12f * impulseTotal;
+        //parentObj.GetComponent<Rigidbody>().velocity -= 0.12f * impulseTotal;
 
-        //parent first point to collObj
-        p_pos[0] = collObj.transform.position + controllerObj.transform.TransformVector( posOffset);
-        p_vel[0] = collObj.GetComponent<Rigidbody>().velocity;
+        //parent first point to parentObj
+        p_pos[0] = parentObj.transform.position + controllerObj.transform.TransformVector( posOffset);
+        p_vel[0] = parentObj.GetComponent<Rigidbody>().velocity;
 
-        p_pos[gridWidth] = collObj.transform.position - controllerObj.transform.TransformVector( new Vector3(0.0f, 0.0f, -gridSize) - posOffset);
-        p_vel[gridWidth] = collObj.GetComponent<Rigidbody>().velocity;
+        p_pos[gridWidth] = parentObj.transform.position - controllerObj.transform.TransformVector( new Vector3(0.0f, 0.0f, -gridSize) - posOffset);
+        p_vel[gridWidth] = parentObj.GetComponent<Rigidbody>().velocity;
 
+    }
+
+    public static float DistancePointLine(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+    {
+        return Vector3.Magnitude(ProjectPointLine(point, lineStart, lineEnd) - point);
+    }
+    public static Vector3 ProjectPointLine(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+    {
+        Vector3 rhs = point - lineStart;
+        Vector3 line = lineEnd - lineStart;
+        float num2 = Mathf.Clamp(Vector3.Dot(line, rhs), 0f, line.magnitude);
+        Vector3 pointInLine = (lineStart + ((Vector3)(line * num2)));
+        return pointInLine;
     }
 
     void updateConstraints()
@@ -311,9 +359,11 @@ public class RibbonSolve : MonoBehaviour
         }
         //p_vel[0] = transform.TransformDirection(Vector3.up) * initVel; //test
 
-        p_pos[0] = collObj.transform.position; // init the first points to collider obj
-        p_pos[gridWidth] = collObj.transform.position - new Vector3(0.0f, -gridSize, 0.0f);
+        p_pos[0] = parentObj.transform.position; // init the first points to collider obj
+        p_pos[gridWidth] = parentObj.transform.position - new Vector3(0.0f, -gridSize, 0.0f);
     }
+
+
 
     void initConstraints( Mesh gridmesh )
     {
