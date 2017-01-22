@@ -11,13 +11,14 @@ public class RibbonSolve : MonoBehaviour
 	public float stiffness = 100.0f;
     public float damping = 10.0f;
     public float gravity = 5.0f;
+    public float targetMatchSpeed = 0.1f;
     public Vector3 posOffset = new Vector3(0.0f, 0.0f, 0.2f);
 
     public bool enforcementBars = true;
 	public int substeps = 2;
 	public float initVel = 3.0f;
 	
-	private Vector3[] p_pos;
+	private Vector3[] p_pos, p_targetPos;
 	private Vector3[] p_vel;
 	private Vector3[] p_force;
 	private int[,] p_constraints; //list of constraints per point
@@ -41,6 +42,8 @@ public class RibbonSolve : MonoBehaviour
     private CapsuleCollider collisionCapsule;
     private Transform collisionTransform;
 
+    private SteamVR_TrackedController controller;
+
 	public float getClosestDistance(Vector3 pos)
 	{
 		float minSqrDistance = float.MaxValue;
@@ -58,7 +61,8 @@ public class RibbonSolve : MonoBehaviour
 	// Use this for initialization
 	void Start ()
     {
-		Mesh gridmesh = createGrid (gridWidth, gridHeight);
+        p_targetPos = new Vector3[gridWidth * gridHeight];
+        Mesh gridmesh = createGrid (gridWidth, gridHeight, controllerObj.transform.position);
 
 		initParticles(gridmesh);
 		initConstraints(gridmesh);
@@ -68,6 +72,7 @@ public class RibbonSolve : MonoBehaviour
         parentObj.transform.parent = controllerObj.transform;
         collisionCapsule = collisionObj.GetComponent<CapsuleCollider>();
         collisionTransform = collisionObj.transform;
+        controller = controllerObj.GetComponent<SteamVR_TrackedController>();
     }
 
     void FixedUpdate ()
@@ -80,6 +85,7 @@ public class RibbonSolve : MonoBehaviour
 		updateParticlesCollision();
         //updateConstraints(); // fracture
         updateColliderInfo();
+        updateController();
 		
 		int i = 0;
 	    while (i < vertices.Length) //copy particle pos to mesh verts
@@ -98,6 +104,42 @@ public class RibbonSolve : MonoBehaviour
         collisionCapsuleA = collisionTransform.TransformPoint(collisionCapsule.center + new Vector3(0.0f, 0.0f, collisionCapsule.height ));
         collisionCapsuleB = collisionTransform.TransformPoint(collisionCapsule.center - new Vector3(0.0f, 0.0f, collisionCapsule.height ));
         Debug.DrawLine(collisionCapsuleA, collisionCapsuleB);
+    }
+
+    void updateController()
+    {
+        if( controller.triggerPressed )
+        {
+            addWind();
+            //matchShape();
+        }
+    }
+
+    void addWind()
+    {
+        int i = 0;
+        Vector3 windVec;
+        while (i < p_pos.Length)
+        {
+            windVec = collisionTransform.TransformVector( new Vector3(0,0,1));
+            p_vel[i] += targetMatchSpeed * windVec;
+            i++;
+        }
+    }
+
+    public void matchShape()
+    {
+        int i = 0;
+        Vector3 targetVec;
+        while (i < p_pos.Length)
+        {
+            targetVec = p_targetPos[i] - p_pos[i];
+            if (targetVec.magnitude > 0.01)
+            {
+                p_vel[i] += targetMatchSpeed * targetVec;
+            }
+            i++;
+        }
     }
 
     void updateParticlesExplicitEuler()
@@ -256,10 +298,6 @@ public class RibbonSolve : MonoBehaviour
 
     }
 
-    public static float DistancePointLine(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
-    {
-        return Vector3.Magnitude(ProjectPointLine(point, lineStart, lineEnd) - point);
-    }
     public static Vector3 ProjectPointLine(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
     {
         Vector3 rhs = point - lineStart;
@@ -289,7 +327,7 @@ public class RibbonSolve : MonoBehaviour
 		}
 	}
 	
-	Mesh createGrid(int hres, int vres)      //horizontal, vertical resolution
+	Mesh createGrid(int hres, int vres, Vector3 origin)      //horizontal, vertical resolution
     {
 		Mesh gridmesh = new Mesh();
         Vector3[] vertices	= new Vector3[hres * vres];
@@ -307,8 +345,9 @@ public class RibbonSolve : MonoBehaviour
         {
 			for(i = 0; i < hres; i++)
             {
-				vertices[hres * j + i] = transform.TransformPoint( new Vector3( size * i, size * j, 0.0f ) );
-				uvs[hres * j + i] = new Vector2( i / hres, j / vres );
+                vertices[hres * j + i] = transform.TransformPoint( new Vector3( size * i, size * j, 0.0f ) + origin );
+                p_targetPos[hres * j + i] = vertices[hres * j + i];
+                uvs[hres * j + i] = new Vector2( i / hres, j / vres );
 			}	
 		}
 		//create tris
