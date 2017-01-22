@@ -7,9 +7,14 @@ public class PlayerManager : MonoBehaviour
 {
 	public static PlayerManager instance;
 
-	public GameObject HUD;
-	public Text ScoreAmount;
-	public Text HealthAmount;
+	public GameObject HUDRed;
+	public GameObject HUDGreen;
+	public Text ScoreAmountRed;
+	public Text HealthAmountRed;
+	public Text ScoreAmountGreen;
+	public Text HealthAmountGreen;
+	public Slider EnergySliderRed;
+	public Slider EnergySliderGreen;
 
 	public List<GameObject> Pests;
 	public List<GameObject> Collectibles;
@@ -41,12 +46,14 @@ public class PlayerManager : MonoBehaviour
 		{
 			firePowerGreen = Mathf.Clamp(firePowerGreen - Time.deltaTime * FirePowerConsumePerSecond, 0, MaxFirePower);
 		}
+		UpdateUI();
 	}
 
 	private void UpdateFirePower()
 	{
 		firePowerRed = Mathf.Clamp(firePowerRed + Time.deltaTime * FirePowerRechargePerSecond, 0, MaxFirePower);
 		firePowerGreen = Mathf.Clamp(firePowerGreen + Time.deltaTime * FirePowerRechargePerSecond, 0, MaxFirePower);
+		UpdateUI();
 	}
 
 	public void Restart()
@@ -68,9 +75,16 @@ public class PlayerManager : MonoBehaviour
 			go.SetActive(true);
 			go.GetComponent<Collectible>().Restart();
 		}
+	}
 
-		ScoreAmount.text = "" + CurrentScore;
-		HealthAmount.text = "" + (int)CurrentHealth;
+	private void UpdateUI()
+	{
+		ScoreAmountRed.text = "" + CurrentScore;
+		HealthAmountRed.text = "" + (int)CurrentHealth;
+		ScoreAmountGreen.text = "" + CurrentScore;
+		HealthAmountGreen.text = "" + (int)CurrentHealth;
+		EnergySliderRed.value = firePowerRed;
+		EnergySliderGreen.value = firePowerGreen;
 	}
 
 	public int CurrentScore
@@ -88,7 +102,7 @@ public class PlayerManager : MonoBehaviour
 	public void DealDamage(float damage)
 	{
 		CurrentHealth = Mathf.Clamp(CurrentHealth - damage, 0, InitialHealth);
-		HealthAmount.text = "" + (int)CurrentHealth;
+		UpdateUI();
 
 		if (IsDead)
 		{
@@ -120,7 +134,7 @@ public class PlayerManager : MonoBehaviour
 	public void AddScore(int amount)
 	{
 		CurrentScore += amount;
-		ScoreAmount.text = "" + CurrentScore;
+		UpdateUI();
 	}
 
 	void Start()
@@ -135,7 +149,9 @@ public class PlayerManager : MonoBehaviour
 			rightController = controllerManager.right.GetComponent<SteamVR_TrackedController>();
 		}
 
-		HUD.transform.parent = leftController.transform;
+		UpdateUI();
+		HUDRed.transform.parent = rightController.transform;
+		HUDGreen.transform.parent = leftController.transform;
 	}
 	
 	void Update()
