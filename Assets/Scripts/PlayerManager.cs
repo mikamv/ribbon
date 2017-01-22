@@ -99,8 +99,13 @@ public class PlayerManager : MonoBehaviour
 		private set;
 	}
 
-	public void DealDamage(float damage)
+	public void DealDamage(float damage, bool isRed)
 	{
+		if (damage > 0.0f)
+		{
+			SteamVR_Controller.Input(isRed ? (int)rightController.controllerIndex: (int)leftController.controllerIndex).TriggerHapticPulse(10000);
+		}
+
 		CurrentHealth = Mathf.Clamp(CurrentHealth - damage, 0, InitialHealth);
 		UpdateUI();
 

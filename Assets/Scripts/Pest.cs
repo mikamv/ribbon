@@ -83,7 +83,7 @@ public class Pest : MonoBehaviour
 				Beam.transform.rotation = Quaternion.LookRotation((beamTargetPosition - transform.position).normalized);
 				Beam.transform.localScale = new Vector3(1.0f, 1.0f, distanceToBeamTarget);
 				Beam.SetActive(true);
-				PlayerManager.instance.DealDamage(Time.deltaTime * DamagePerSecond);
+				PlayerManager.instance.DealDamage(Time.deltaTime * DamagePerSecond, IsRed);
 			}
 		}
 

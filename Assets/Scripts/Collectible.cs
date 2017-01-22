@@ -58,7 +58,7 @@ public class Collectible : MonoBehaviour
 				Vector3 repulsionForce = transform.position - closestPosition;
 				rb.AddForce(repulsionForce * RepulsionScale, ForceMode.Impulse);
 				PlayerManager.instance.AddScore(1);
-				PlayerManager.instance.DealDamage(-100);
+				PlayerManager.instance.DealDamage(-100, IsRed);
 				Restart();
 			}
 		}
