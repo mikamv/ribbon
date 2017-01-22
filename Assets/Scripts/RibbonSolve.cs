@@ -5,6 +5,7 @@ using System.Collections.Generic; //needed for List
 
 public class RibbonSolve : MonoBehaviour
 {
+    public bool isRed;
 	public int gridWidth = 10;
 	public int gridHeight = 10;
 	public float gridSize = 0.5f;

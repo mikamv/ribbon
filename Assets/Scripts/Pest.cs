@@ -8,16 +8,24 @@ public class Pest : MonoBehaviour
 	public float TargetReachedDistance = 0.5f;
 	public float MaxDistanceToRibbon = 0.25f;
 	public float RepulsionScale = 1.0f;
+    public bool IsRed;
 
 	private Rigidbody rb;
 	private Vector3 targetPosition;
 	private bool towardsHead = false;
-	private RibbonSolve[] ribbonSolvers;
+	private RibbonSolve ribbonSolver;
 
 	void Start()
 	{
 		rb = GetComponent<Rigidbody>();
-		ribbonSolvers = FindObjectsOfType<RibbonSolve>();
+		RibbonSolve[] ribbonSolvers = FindObjectsOfType<RibbonSolve>();
+        for (int i = 0; i < ribbonSolvers.Length; i++)
+        {
+            if ((ribbonSolvers[i].isRed && IsRed) || (!ribbonSolvers[i].isRed && !IsRed))
+            {
+                ribbonSolver = ribbonSolvers[i];
+            }
+        }
 	}
 
 	void setTarget(bool towardsHead)
@@ -35,28 +43,18 @@ public class Pest : MonoBehaviour
 
 	void Update()
 	{
-		if (towardsHead)
+		Vector3 closestPosition;
+		float distance = ribbonSolver.getClosestPoint(transform.position, out closestPosition);
+		if (distance <= MaxDistanceToRibbon)
 		{
-			bool closeEnough = false;
-			for (int i = 0; i < ribbonSolvers.Length; i++)
-			{
-				RibbonSolve ribbonSolve = ribbonSolvers[i];
-				Vector3 closestPosition;
-				float distance = ribbonSolve.getClosestPoint(transform.position, out closestPosition);
-				if (distance <= MaxDistanceToRibbon)
-				{
-					closeEnough = true;
-					Vector3 repulsionForce = transform.position - closestPosition;
-					rb.AddForce(repulsionForce * RepulsionScale, ForceMode.Impulse);
-					break;
-				}
-			}
-			if (closeEnough)
-			{
-				towardsHead = false;
-				setTarget(towardsHead);
-			}
-		}
+			Vector3 repulsionForce = transform.position - closestPosition;
+			rb.AddForce(repulsionForce * RepulsionScale, ForceMode.Impulse);
+            if (towardsHead)
+            {
+                towardsHead = false;
+                setTarget(towardsHead);
+            }
+        }
 
 		Vector3 toTarget = (targetPosition - transform.position);
 		if (toTarget.sqrMagnitude < TargetReachedDistance * TargetReachedDistance)
