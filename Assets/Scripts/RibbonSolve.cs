@@ -13,6 +13,9 @@ public class RibbonSolve : MonoBehaviour
     public float gravity = 5.0f;
     public Vector3 posOffset = new Vector3(0.0f, 0.0f, 0.2f);
 
+	public float dampTangent = 0.998f;
+	public float dampNormal = 0.9f;
+
     public bool enforcementBars = true;
 	public int substeps = 2;
 	public float initVel = 3.0f;
@@ -109,9 +112,24 @@ public class RibbonSolve : MonoBehaviour
             {
                 p_force[i] = gravity * ( transform.TransformVector( Vector3.down ) ) + calcForce( i ); //gravity plus spring forces
                 //p_force[i][2] = 0.0f; // no force in z, keep planar
+				
+
                 p_vel[i] *= 0.9985f; // damping
                 i++;
             }
+/*
+			// Alternate way to do damping
+			int lengthCount = p_pos.Length / 2;
+			for (int j = 0; j < p_pos.Length / 2; j++)
+			{
+				Vector3 sideA = p_pos[j] - p_pos[j + lengthCount];
+				Vector3 fwdA = p_pos[j] - p_pos[j > 0 ? j - 1 : j + 1];
+				Vector3 normal = Vector3.Cross(sideA, fwdA).normalized;
+				float dot = Mathf.Abs(Vector3.Dot(p_vel[j].normalized, normal));
+				p_vel[j] *= Mathf.Lerp(dampTangent, dampNormal, dot);
+				p_vel[j + lengthCount] *= Mathf.Lerp(dampTangent, dampNormal, dot);
+			}
+*/
             i = 0;
             while (i < p_pos.Length)    //explicit euler integration
             {
