@@ -123,26 +123,33 @@ public class RibbonSolve : MonoBehaviour
     {
         collisionCapsuleA = collisionTransform.TransformPoint(collisionCapsule.center + new Vector3(0.0f, 0.0f, collisionCapsule.height ));
         collisionCapsuleB = collisionTransform.TransformPoint(collisionCapsule.center - new Vector3(0.0f, 0.0f, collisionCapsule.height ));
-        Debug.DrawLine(collisionCapsuleA, collisionCapsuleB);
+        //Debug.DrawLine(collisionCapsuleA, collisionCapsuleB);
     }
 
     void updateController()
     {
         if( controller.triggerPressed )
         {
-            addWind();
-            //matchShape();
+            //addWind();
+            matchShape();
         }
     }
 
     void addWind()
     {
         int i = 0;
-        Vector3 windVec;
+        Vector3 windVec, windVec2, closestPoint;
+        Vector3 lineStart = collisionTransform.position + posOffset;
+        Vector3 lineEnd = lineStart + collisionTransform.TransformPoint( new Vector3( gridWidth * gridSize*1, 0, 0) );
         while (i < p_pos.Length)
         {
-            windVec = collisionTransform.TransformVector( new Vector3(0,0,1));
-            p_vel[i] += targetMatchSpeed * windVec;
+            closestPoint = ProjectPointLine(p_pos[i], lineStart, lineEnd);
+            //closestPoint = ProjectPointLine(p_pos[i], collisionCapsuleA, collisionCapsuleB);
+            windVec = closestPoint - p_pos[i];
+            windVec2 = lineEnd - lineStart * 0.001f;
+            //Debug.DrawLine(lineStart, lineEnd);
+            Debug.DrawLine(p_pos[i] , p_pos[i] + windVec);
+            p_vel[i] += targetMatchSpeed * windVec + windVec2;
             i++;
         }
     }
@@ -150,13 +157,15 @@ public class RibbonSolve : MonoBehaviour
     public void matchShape()
     {
         int i = 0;
-        Vector3 targetVec;
+        Vector3 targetVec, targetPos;
         while (i < p_pos.Length)
         {
-            targetVec = p_targetPos[i] - p_pos[i];
+            targetPos = collisionTransform.TransformPoint( p_targetPos[i] * 2 ) + posOffset;
+            targetVec = targetPos - p_pos[i];
+            Debug.DrawLine(p_pos[i], targetPos);
             if (targetVec.magnitude > 0.01)
             {
-                p_vel[i] += targetMatchSpeed * targetVec;
+                p_vel[i] += targetMatchSpeed * targetVec * 3;
             }
             i++;
         }
