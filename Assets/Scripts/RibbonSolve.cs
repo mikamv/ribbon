@@ -130,8 +130,13 @@ public class RibbonSolve : MonoBehaviour
     {
         if( controller.triggerPressed )
         {
-            //addWind();
-            matchShape();
+            PlayerManager.instance.ConsumeFirePower(isRed);
+
+            if (PlayerManager.instance.HasFirePower(isRed))
+            {
+                //addWind();
+                matchShape();
+            }
         }
     }
 
@@ -162,13 +167,13 @@ public class RibbonSolve : MonoBehaviour
         
         while (i < p_pos.Length)
         {
-            targetPos = collisionTransform.TransformPoint(  quat * p_targetPos[i] * 2 ) + posOffset;
+            targetPos = collisionTransform.TransformPoint(  quat * p_targetPos[i] * 2 + 2*posOffset ) ;
             targetVec = targetPos - p_pos[i];
             Debug.DrawLine(p_pos[i], targetPos);
             if (targetVec.magnitude > 0.01)
             {
-                p_pos[i] = Vector3.Lerp(p_pos[i], targetPos, 0.5f);
-                p_vel[i] += targetMatchSpeed * targetVec * 0.1f;
+                p_pos[i] = Vector3.Lerp(p_pos[i], targetPos, 0.05f);
+                p_vel[i] += targetMatchSpeed * targetVec * 0.25f;
             }
             i++;
         }
