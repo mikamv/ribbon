@@ -103,7 +103,7 @@ public class PlayerManager : MonoBehaviour
 	{
 		if (damage > 0.0f)
 		{
-			SteamVR_Controller.Input(isRed ? (int)rightController.controllerIndex: (int)leftController.controllerIndex).TriggerHapticPulse(10000);
+			SteamVR_Controller.Input(isRed ? (int)rightController.controllerIndex : (int)leftController.controllerIndex).TriggerHapticPulse(3000);
 		}
 
 		CurrentHealth = Mathf.Clamp(CurrentHealth - damage, 0, InitialHealth);
