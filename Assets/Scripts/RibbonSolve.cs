@@ -149,7 +149,7 @@ public class RibbonSolve : MonoBehaviour
             windVec2 = lineEnd - lineStart * 0.001f;
             //Debug.DrawLine(lineStart, lineEnd);
             Debug.DrawLine(p_pos[i] , p_pos[i] + windVec);
-            p_vel[i] += targetMatchSpeed * windVec + windVec2;
+            p_vel[i] += 0.1f*(targetMatchSpeed * windVec + windVec2);
             i++;
         }
     }
@@ -158,14 +158,17 @@ public class RibbonSolve : MonoBehaviour
     {
         int i = 0;
         Vector3 targetVec, targetPos;
+        Quaternion quat = Quaternion.AngleAxis(-90, new Vector3(0,1,0));
+        
         while (i < p_pos.Length)
         {
-            targetPos = collisionTransform.TransformPoint( p_targetPos[i] * 2 ) + posOffset;
+            targetPos = collisionTransform.TransformPoint(  quat * p_targetPos[i] * 2 ) + posOffset;
             targetVec = targetPos - p_pos[i];
             Debug.DrawLine(p_pos[i], targetPos);
             if (targetVec.magnitude > 0.01)
             {
-                p_vel[i] += targetMatchSpeed * targetVec * 3;
+                p_pos[i] = Vector3.Lerp(p_pos[i], targetPos, 0.5f);
+                p_vel[i] += targetMatchSpeed * targetVec * 0.1f;
             }
             i++;
         }
