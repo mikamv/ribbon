@@ -58,6 +58,22 @@ public class RibbonSolve : MonoBehaviour
 		return Mathf.Sqrt(minSqrDistance);
 	}
 
+	public float getClosestPoint(Vector3 pos, out Vector3 closestPosition)
+	{
+		closestPosition = new Vector3(1000.0f, 1000.0f, 1000.0f);
+		float minSqrDistance = float.MaxValue;
+		for (int i = 0; i < p_pos.Length; i++)
+		{
+			float sqrDistance = (p_pos[i] - pos).sqrMagnitude;
+			if (sqrDistance < minSqrDistance)
+			{
+				minSqrDistance = sqrDistance;
+				closestPosition = p_pos[i];
+			}
+		}
+		return Mathf.Sqrt(minSqrDistance);
+	}
+
 	// Use this for initialization
 	void Start ()
     {
