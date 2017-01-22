@@ -16,13 +16,46 @@ public class PlayerManager : MonoBehaviour
 
 	public float InitialHealth = 1000;
 
+	public float MaxFirePower = 1.0f;
+	public float FirePowerConsumePerSecond = 1.0f;
+	public float FirePowerRechargePerSecond = 0.2f;
+
+	private float firePowerRed;
+	private float firePowerGreen;
+
 	private SteamVR_TrackedController leftController;
 	private SteamVR_TrackedController rightController;
+
+	public bool HasFirePower(bool isRed)
+	{
+		return (isRed ? firePowerRed : firePowerGreen) > 0.0f;
+	}
+
+	public void ConsumeFirePower(bool isRed)
+	{
+		if (isRed)
+		{
+			firePowerRed = Mathf.Clamp(firePowerRed - Time.deltaTime * FirePowerConsumePerSecond, 0, MaxFirePower);
+		}
+		else
+		{
+			firePowerGreen = Mathf.Clamp(firePowerGreen - Time.deltaTime * FirePowerConsumePerSecond, 0, MaxFirePower);
+		}
+	}
+
+	private void UpdateFirePower()
+	{
+		firePowerRed = Mathf.Clamp(firePowerRed + Time.deltaTime * FirePowerRechargePerSecond, 0, MaxFirePower);
+		firePowerGreen = Mathf.Clamp(firePowerGreen + Time.deltaTime * FirePowerRechargePerSecond, 0, MaxFirePower);
+	}
 
 	public void Restart()
 	{
 		CurrentScore = 0;
 		CurrentHealth = InitialHealth;
+
+		firePowerRed = MaxFirePower;
+		firePowerGreen = MaxFirePower;
 
 		foreach (GameObject go in Pests)
 		{
@@ -111,5 +144,7 @@ public class PlayerManager : MonoBehaviour
 		{
 			Restart();
 		}
+
+		UpdateFirePower();
 	}
 }
